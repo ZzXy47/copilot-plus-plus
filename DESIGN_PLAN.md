@@ -1,8 +1,8 @@
-# 多元探索 (DuoYuanX) VS Code Copilot 插件 — 完整设计方案 v3.1
+# Copilot++ (Copilot++) VS Code Copilot 插件 — 完整设计方案 v3.1
 
 > **版本**: v3.1（基于 DeepSeek/Kimi for Copilot 参考校正版）  
 > **日期**: 2026-06-30  
-> **目标**: 将多元探索 API **当前 Key 可用**的 8 个模型完整接入 VS Code Copilot Chat  
+> **目标**: 将Copilot++ API **当前 Key 可用**的 8 个模型完整接入 VS Code Copilot Chat  
 > **状态**: ✅ 已验证可行，可正式开发  
 > **VS Code**: ^1.120.0 | **Node**: >=24 | **enabledApiProposals**: []
 
@@ -96,7 +96,7 @@ gemini-3.1-pro    thinkingConfig:{                     thinking_level:"low"     
 │                           │                                │
 │                           ▼                                │
 │  ┌────────────────────────────────────────────────────┐   │
-│  │           DuoYuanXChatProvider                       │   │
+│  │           Copilot++ChatProvider                       │   │
 │  │     implements LanguageModelChatProvider             │   │
 │  │                                                      │   │
 │  │  ┌──────────────────────────────────────────────┐   │   │
@@ -112,7 +112,7 @@ gemini-3.1-pro    thinkingConfig:{                     thinking_level:"low"     
 │                           ▼                                │
 │              POST /v1/chat/completions                      │
 │              POST /v1/images/generations                    │
-│              https://duoyuanx.com                           │
+│              https://copilot-plus-plus.com                           │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -128,7 +128,7 @@ gemini-3.1-pro    thinkingConfig:{                     thinking_level:"low"     
 ## 三、项目目录结构
 
 ```
-duoyuanx-copilot/
+copilot-plus-plus-copilot/
 ├── .vscode/
 │   ├── launch.json
 │   └── tasks.json
@@ -137,7 +137,7 @@ duoyuanx-copilot/
 │   ├── commands.ts                   # 命令注册
 │   │
 │   ├── provider/
-│   │   └── DuoYuanXChatProvider.ts   # LanguageModelChatProvider 实现
+│   │   └── Copilot++ChatProvider.ts   # LanguageModelChatProvider 实现
 │   │
 │   ├── services/
 │   │   ├── ModelManager.ts           # 模型列表获取/缓存
@@ -147,7 +147,7 @@ duoyuanx-copilot/
 │   │   └── TokenCounter.ts           # Token 估算
 │   │
 │   ├── api/
-│   │   ├── DuoYuanXApiClient.ts      # HTTP 客户端 (fetch + SSE)
+│   │   ├── Copilot++ApiClient.ts      # HTTP 客户端 (fetch + SSE)
 │   │   ├── types.ts                  # API 类型定义
 │   │   └── errors.ts                 # 错误处理
 │   │
@@ -548,13 +548,13 @@ export async function activate(context: vscode.ExtensionContext) {
   const thinkingManager = new ThinkingModeManager();
   const tokenCounter = new TokenCounter();
 
-  const chatProvider = new DuoYuanXChatProvider(
+  const chatProvider = new Copilot++ChatProvider(
     context, configManager, modelManager, thinkingManager, tokenCounter
   );
 
   // 注册 LM Provider — 模型出现在 Copilot Chat 模型选择器
   context.subscriptions.push(
-    vscode.lm.registerLanguageModelChatProvider('duoyuanx', chatProvider)
+    vscode.lm.registerLanguageModelChatProvider('copilot-plus-plus', chatProvider)
   );
 
   // 注册命令
@@ -563,10 +563,10 @@ export async function activate(context: vscode.ExtensionContext) {
   // 多窗口 API Key 同步
   context.subscriptions.push(
     context.secrets.onDidChange(e => {
-      if (e.key === 'duoyuanx.apiKey') chatProvider.refreshModelPicker();
+      if (e.key === 'copilot-plus-plus.apiKey') chatProvider.refreshModelPicker();
     }),
     vscode.workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('duoyuanx')) chatProvider.refreshModelPicker();
+      if (e.affectsConfiguration('copilot-plus-plus')) chatProvider.refreshModelPicker();
     })
   );
 
@@ -583,10 +583,10 @@ export async function deactivate() {
 }
 ```
 
-### 7.2 DuoYuanXChatProvider 完整结构
+### 7.2 Copilot++ChatProvider 完整结构
 
 ```typescript
-class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<DuoYuanXModelInfo> {
+class Copilot++ChatProvider implements vscode.LanguageModelChatProvider<Copilot++ModelInfo> {
   private readonly _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChangeLanguageModelChatInformation = this._onDidChange.event;
   private isActive = true;
@@ -608,14 +608,14 @@ class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<DuoYuanXM
   async prepareForDeactivate(): Promise<void> {
     this.isActive = false;
     this._onDidChange.fire();
-    try { await vscode.lm.selectChatModels({ vendor: 'duoyuanx' }); } catch {}
+    try { await vscode.lm.selectChatModels({ vendor: 'copilot-plus-plus' }); } catch {}
   }
 
   dispose(): void { this._onDidChange.dispose(); }
 
   async provideLanguageModelChatInformation(
     options: { silent: boolean }, _token: vscode.CancellationToken
-  ): Promise<DuoYuanXModelInfo[]> {
+  ): Promise<Copilot++ModelInfo[]> {
     if (!this.isActive) return [];
     if (options.silent) return [];
 
@@ -635,13 +635,13 @@ class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<DuoYuanXM
 
 ```typescript
 // 模型信息注入 configurationSchema，用户在模型选择器中直接配置思考强度
-function toVSCodeModelInfo(m: ApiModelInfo, hasKey: boolean): DuoYuanXModelInfo {
+function toVSCodeModelInfo(m: ApiModelInfo, hasKey: boolean): Copilot++ModelInfo {
   const capability = MODEL_REGISTRY[m.id];
   const thinkingConfig = capability?.thinking;
 
   return {
     id: m.id, name: toDisplayName(m.id),
-    vendor: 'duoyuanx', family: inferFamily(m.id), version: '1.0.0',
+    vendor: 'copilot-plus-plus', family: inferFamily(m.id), version: '1.0.0',
     maxInputTokens: capability?.contextWindow ?? 128000,
     maxOutputTokens: capability?.maxOutputTokens ?? 4096,
     detail: hasKey ? buildDetail(capability) : '请先设置 API Key',
@@ -690,11 +690,11 @@ function buildThinkingSchema(t: ThinkingConfig) {
 
 | 命令 ID | 标题 |
 |---------|------|
-| `duoyuanx.setApiKey` | 设置 API Key |
-| `duoyuanx.refreshModels` | 刷新模型列表 |
-| `duoyuanx.selectModel` | 选择默认模型 |
-| `duoyuanx.generateImage` | 生成图像 |
-| `duoyuanx.openModelConfig` | 模型参数配置 |
+| `copilot-plus-plus.setApiKey` | 设置 API Key |
+| `copilot-plus-plus.refreshModels` | 刷新模型列表 |
+| `copilot-plus-plus.selectModel` | 选择默认模型 |
+| `copilot-plus-plus.generateImage` | 生成图像 |
+| `copilot-plus-plus.openModelConfig` | 模型参数配置 |
 
 ---
 
@@ -786,7 +786,7 @@ function buildThinkingSchema(t: ThinkingConfig) {
 
 import * as vscode from 'vscode';
 
-const STORAGE_KEY = 'duoyuanx.apiKey';
+const STORAGE_KEY = 'copilot-plus-plus.apiKey';
 
 export class SecretStore {
   constructor(private readonly context: vscode.ExtensionContext) {}
@@ -820,7 +820,7 @@ export class SecretStore {
 ```typescript
 // src/api/errors.ts
 
-export enum DuoYuanXErrorCode {
+export enum Copilot++ErrorCode {
   INVALID_API_KEY = 'invalid_api_key',       // 401
   INSUFFICIENT_QUOTA = 'insufficient_user_quota', // 402
   RATE_LIMITED = 'too_many_requests',        // 429
@@ -831,34 +831,34 @@ export enum DuoYuanXErrorCode {
   TIMEOUT = 'timeout',                       // 超时
 }
 
-export class DuoYuanXError extends Error {
+export class Copilot++Error extends Error {
   constructor(
-    public readonly code: DuoYuanXErrorCode,
+    public readonly code: Copilot++ErrorCode,
     message: string,
     public readonly statusCode?: number,
     public readonly raw?: unknown,
   ) {
     super(message);
-    this.name = 'DuoYuanXError';
+    this.name = 'Copilot++Error';
   }
 }
 
 /** 用户友好的中文错误消息映射 */
-export const ERROR_MESSAGES: Record<DuoYuanXErrorCode, string> = {
-  [DuoYuanXErrorCode.INVALID_API_KEY]: 'API Key 无效或已过期，请重新设置。',
-  [DuoYuanXErrorCode.INSUFFICIENT_QUOTA]: '账户额度不足，请充值后重试。',
-  [DuoYuanXErrorCode.RATE_LIMITED]: '请求过于频繁，请稍后重试。',
-  [DuoYuanXErrorCode.MODEL_NOT_FOUND]: '所选模型不可用，请尝试其他模型。',
-  [DuoYuanXErrorCode.NO_CHANNEL]: '该模型暂无可用渠道，已自动跳过。',
-  [DuoYuanXErrorCode.BAD_RESPONSE]: '服务响应异常，请稍后重试。',
-  [DuoYuanXErrorCode.NETWORK_ERROR]: '网络连接失败，请检查网络设置。',
-  [DuoYuanXErrorCode.TIMEOUT]: '请求超时，请检查网络或增加超时时间。',
+export const ERROR_MESSAGES: Record<Copilot++ErrorCode, string> = {
+  [Copilot++ErrorCode.INVALID_API_KEY]: 'API Key 无效或已过期，请重新设置。',
+  [Copilot++ErrorCode.INSUFFICIENT_QUOTA]: '账户额度不足，请充值后重试。',
+  [Copilot++ErrorCode.RATE_LIMITED]: '请求过于频繁，请稍后重试。',
+  [Copilot++ErrorCode.MODEL_NOT_FOUND]: '所选模型不可用，请尝试其他模型。',
+  [Copilot++ErrorCode.NO_CHANNEL]: '该模型暂无可用渠道，已自动跳过。',
+  [Copilot++ErrorCode.BAD_RESPONSE]: '服务响应异常，请稍后重试。',
+  [Copilot++ErrorCode.NETWORK_ERROR]: '网络连接失败，请检查网络设置。',
+  [Copilot++ErrorCode.TIMEOUT]: '请求超时，请检查网络或增加超时时间。',
 };
 
 /** 判断是否应重试 */
-export function isRetryable(code: DuoYuanXErrorCode): boolean {
-  return [DuoYuanXErrorCode.RATE_LIMITED, DuoYuanXErrorCode.BAD_RESPONSE,
-          DuoYuanXErrorCode.NETWORK_ERROR, DuoYuanXErrorCode.TIMEOUT].includes(code);
+export function isRetryable(code: Copilot++ErrorCode): boolean {
+  return [Copilot++ErrorCode.RATE_LIMITED, Copilot++ErrorCode.BAD_RESPONSE,
+          Copilot++ErrorCode.NETWORK_ERROR, Copilot++ErrorCode.TIMEOUT].includes(code);
 }
 
 /** 指数退避重试包装器 */
@@ -874,7 +874,7 @@ export async function withRetry<T>(
       return await fn();
     } catch (err) {
       lastError = err;
-      if (err instanceof DuoYuanXError && !isRetryable(err.code)) throw err;
+      if (err instanceof Copilot++Error && !isRetryable(err.code)) throw err;
       if (attempt < maxRetries) {
         await new Promise(r => setTimeout(r, baseDelay * Math.pow(2, attempt)));
       }
@@ -901,7 +901,7 @@ export interface ApiModelInfo {
 }
 
 /** VS Code LM Provider 需要的模型信息（扩展） */
-export interface DuoYuanXModelInfo extends vscode.LanguageModelChatInformation {
+export interface Copilot++ModelInfo extends vscode.LanguageModelChatInformation {
   /** 原始模型 ID */
   modelId: string;
   /** 模型类型 */
@@ -915,7 +915,7 @@ export interface DuoYuanXModelInfo extends vscode.LanguageModelChatInformation {
 /**
  * 将 API 模型转换为 VS Code LanguageModelChatInformation
  */
-export function toVSCodeModelInfo(apiModel: ApiModelInfo): DuoYuanXModelInfo {
+export function toVSCodeModelInfo(apiModel: ApiModelInfo): Copilot++ModelInfo {
   const family = inferFamily(apiModel.id);
   const capability = MODEL_REGISTRY[apiModel.id];
   const modelType = apiModel.supported_endpoint_types?.includes('image-generation')
@@ -925,7 +925,7 @@ export function toVSCodeModelInfo(apiModel: ApiModelInfo): DuoYuanXModelInfo {
     // VS Code 标准字段
     id: apiModel.id,
     name: toDisplayName(apiModel.id, family),
-    vendor: 'duoyuanx',
+    vendor: 'copilot-plus-plus',
     family,
     version: '1.0.0',
     maxInputTokens: capability?.contextWindow ?? 128000,
@@ -987,7 +987,7 @@ function buildDetail(capability?: ModelCapability): string | undefined {
 // src/services/ImageGenerator.ts
 
 import * as vscode from 'vscode';
-import { DuoYuanXApiClient } from '../api/DuoYuanXApiClient';
+import { Copilot++ApiClient } from '../api/Copilot++ApiClient';
 import { ConfigManager } from './ConfigManager';
 
 export interface ImageGenRequest {
@@ -1008,7 +1008,7 @@ export interface ImageGenResult {
 export class ImageGenerator {
   constructor(
     private readonly configManager: ConfigManager,
-    private readonly apiClient: DuoYuanXApiClient,
+    private readonly apiClient: Copilot++ApiClient,
   ) {}
 
   /** 生成图像 */
@@ -1040,7 +1040,7 @@ export class ImageGenerator {
 
         // 方案 B：在 VS Code 内置浏览器/Webview 中展示
         const panel = vscode.window.createWebviewPanel(
-          `duoyuanx-image-${Date.now()}-${i}`,
+          `copilot-plus-plus-image-${Date.now()}-${i}`,
           `生成结果 ${i + 1}`,
           vscode.ViewColumn.Beside,
           { enableScripts: true },
@@ -1072,7 +1072,7 @@ class ModelManager {
   /**
    * 获取文本模型列表（仅可用的聊天模型）
    */
-  async getChatModels(): Promise<DuoYuanXModelInfo[]> {
+  async getChatModels(): Promise<Copilot++ModelInfo[]> {
     const models = await this.getModels();
     return models
       .filter(m => {
@@ -1089,7 +1089,7 @@ class ModelManager {
   /**
    * 获取图像模型列表
    */
-  async getImageModels(): Promise<DuoYuanXModelInfo[]> {
+  async getImageModels(): Promise<Copilot++ModelInfo[]> {
     const models = await this.getModels();
     return models
       .filter(m => m.supported_endpoint_types?.includes('image-generation'))
@@ -1108,12 +1108,12 @@ class ModelManager {
 }
 ```
 
-### 10.6 DuoYuanXApiClient 完整设计
+### 10.6 Copilot++ApiClient 完整设计
 
 ```typescript
-// src/api/DuoYuanXApiClient.ts
+// src/api/Copilot++ApiClient.ts
 
-export class DuoYuanXApiClient {
+export class Copilot++ApiClient {
   constructor(
     private readonly baseUrl: string,
     private readonly getApiKey: () => Promise<string | undefined>,
@@ -1128,7 +1128,7 @@ export class DuoYuanXApiClient {
     signal?: AbortSignal,
   ): Promise<T> {
     const apiKey = await this.getApiKey();
-    if (!apiKey) throw new DuoYuanXError(DuoYuanXErrorCode.INVALID_API_KEY, 'API Key 未设置');
+    if (!apiKey) throw new Copilot++Error(Copilot++ErrorCode.INVALID_API_KEY, 'API Key 未设置');
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -1152,10 +1152,10 @@ export class DuoYuanXApiClient {
       return resp.json() as Promise<T>;
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
-        throw new DuoYuanXError(DuoYuanXErrorCode.TIMEOUT, '请求超时');
+        throw new Copilot++Error(Copilot++ErrorCode.TIMEOUT, '请求超时');
       }
-      if (err instanceof DuoYuanXError) throw err;
-      throw new DuoYuanXError(DuoYuanXErrorCode.NETWORK_ERROR, (err as Error).message);
+      if (err instanceof Copilot++Error) throw err;
+      throw new Copilot++Error(Copilot++ErrorCode.NETWORK_ERROR, (err as Error).message);
     } finally {
       clearTimeout(timeoutId);
     }
@@ -1166,13 +1166,13 @@ export class DuoYuanXApiClient {
     try { body = await resp.json(); } catch {}
 
     const code = body?.error?.code;
-    if (resp.status === 401) throw new DuoYuanXError(DuoYuanXErrorCode.INVALID_API_KEY, body?.error?.message ?? 'Invalid API key', 401);
-    if (resp.status === 402) throw new DuoYuanXError(DuoYuanXErrorCode.INSUFFICIENT_QUOTA, body?.error?.message ?? 'Insufficient quota', 402);
-    if (resp.status === 429) throw new DuoYuanXError(DuoYuanXErrorCode.RATE_LIMITED, body?.error?.message ?? 'Rate limited', 429);
-    if (code === 'model_not_found') throw new DuoYuanXError(DuoYuanXErrorCode.MODEL_NOT_FOUND, body?.error?.message ?? 'Model not found', 400);
-    if (resp.status === 500) throw new DuoYuanXError(DuoYuanXErrorCode.BAD_RESPONSE, body?.error?.message ?? 'Server error', 500);
+    if (resp.status === 401) throw new Copilot++Error(Copilot++ErrorCode.INVALID_API_KEY, body?.error?.message ?? 'Invalid API key', 401);
+    if (resp.status === 402) throw new Copilot++Error(Copilot++ErrorCode.INSUFFICIENT_QUOTA, body?.error?.message ?? 'Insufficient quota', 402);
+    if (resp.status === 429) throw new Copilot++Error(Copilot++ErrorCode.RATE_LIMITED, body?.error?.message ?? 'Rate limited', 429);
+    if (code === 'model_not_found') throw new Copilot++Error(Copilot++ErrorCode.MODEL_NOT_FOUND, body?.error?.message ?? 'Model not found', 400);
+    if (resp.status === 500) throw new Copilot++Error(Copilot++ErrorCode.BAD_RESPONSE, body?.error?.message ?? 'Server error', 500);
 
-    throw new DuoYuanXError(DuoYuanXErrorCode.BAD_RESPONSE, `HTTP ${resp.status}: ${body?.error?.message ?? 'Unknown error'}`, resp.status);
+    throw new Copilot++Error(Copilot++ErrorCode.BAD_RESPONSE, `HTTP ${resp.status}: ${body?.error?.message ?? 'Unknown error'}`, resp.status);
   }
 
   /** 获取模型列表 */
@@ -1189,7 +1189,7 @@ export class DuoYuanXApiClient {
   /** 流式聊天（返回 ReadableStream 供上层消费） */
   async streamChat(body: unknown, signal?: AbortSignal): Promise<Response> {
     const apiKey = await this.getApiKey();
-    if (!apiKey) throw new DuoYuanXError(DuoYuanXErrorCode.INVALID_API_KEY, 'API Key 未设置');
+    if (!apiKey) throw new Copilot++Error(Copilot++ErrorCode.INVALID_API_KEY, 'API Key 未设置');
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -1223,7 +1223,7 @@ async function ensureApiKey(configManager: ConfigManager): Promise<string> {
   if (!key) {
     // 弹出输入框
     key = await vscode.window.showInputBox({
-      prompt: '请输入多元探索 (DuoYuanX) API Key',
+      prompt: '请输入Copilot++ (Copilot++) API Key',
       placeHolder: 'sk-...',
       password: true,
       ignoreFocusOut: true,
@@ -1234,9 +1234,9 @@ async function ensureApiKey(configManager: ConfigManager): Promise<string> {
     });
     if (key) {
       await configManager.setApiKey(key.trim());
-      vscode.window.showInformationMessage('DuoYuanX API Key 已保存');
+      vscode.window.showInformationMessage('Copilot++ API Key 已保存');
     } else {
-      vscode.window.showWarningMessage('未设置 API Key，DuoYuanX 模型将不可用。稍后可通过命令面板设置。');
+      vscode.window.showWarningMessage('未设置 API Key，Copilot++ 模型将不可用。稍后可通过命令面板设置。');
     }
   }
   return key ?? '';
@@ -1298,15 +1298,15 @@ Week 1:
 ├── [P0] 创建 launch.json 调试配置
 ├── [P0] 创建 .vscodeignore 打包配置
 ├── [P0] 实现 SecretStore (src/services/SecretStore.ts)
-├── [P0] 实现 DuoYuanXApiClient 基础版 (GET /v1/models + POST /v1/chat/completions)
+├── [P0] 实现 Copilot++ApiClient 基础版 (GET /v1/models + POST /v1/chat/completions)
 ├── [P0] 实现 SSE 流解析器 (src/utils/sseParser.ts)
-├── [P0] 实现 errors.ts (DuoYuanXError + 错误码映射)
+├── [P0] 实现 errors.ts (Copilot++Error + 错误码映射)
 ├── [P0] 实现 ConfigManager 基础版 (读取 baseUrl)
 │
 Week 2:
 ├── [P0] 实现 ModelManager (获取/缓存模型列表)
 ├── [P0] 实现 toVSCodeModelInfo() 映射
-├── [P0] 实现 DuoYuanXChatProvider 最小版 (支持 gpt-5.5 纯文本对话)
+├── [P0] 实现 Copilot++ChatProvider 最小版 (支持 gpt-5.5 纯文本对话)
 ├── [P0] 实现 extension.ts activate() + 首次使用引导
 ├── [P0] 实现 commands.ts (setApiKey / refreshModels / selectModel)
 └── [P0] 手工验证：gpt-5.5 在 VS Code Chat 中对话
@@ -1321,7 +1321,7 @@ Week 3:
 ├── [P0] 创建 modelRegistry.ts (全部 6 文本模型精确注册)
 ├── [P0] 实现 ThinkingModeManager (6 种 ThinkingType)
 ├── [P0] ThinkingModeManager 单元测试 (≥20 用例)
-├── [P0] 扩展 DuoYuanXChatProvider: 思考内容流式展示
+├── [P0] 扩展 Copilot++ChatProvider: 思考内容流式展示
 │       (LanguageModelThinkingPart + reasoning_content)
 │
 Week 4:
@@ -1340,7 +1340,7 @@ Phase 2 里程碑: ✅ 全部 6 文本模型可用，思考模式可独立配置
 ```
 Week 5:
 ├── [P0] 实现 ImageGenerator (POST /v1/images/generations)
-├── [P0] 实现图像生成命令 (duoyuanx.generateImage)
+├── [P0] 实现图像生成命令 (copilot-plus-plus.generateImage)
 ├── [P0] 实现图像结果 Webview 预览
 ├── [P1] 模型列表过滤: 区分文本/图像模型
 │
@@ -1376,7 +1376,7 @@ Phase 4 里程碑: ✅ VSIX 可发布
 
 *本设计方案基于真实 API Key 验证和以下文档：*
 - [豆包 主流大模型思考模式 API 参数完整手册](https://www.doubao.com/thread/xdbc186d948708b9f856ba726f0282a8a) ⭐ 核心参考
-- [多元探索 API 文档](https://doc.duoyuanx.com/zh)
+- [Copilot++ API 文档](https://doc.copilot-plus-plus.com/zh)
 - [阿里云百炼 文本生成](https://help.aliyun.com/zh/model-studio/text-generation-model/)
 - [阿里云百炼 深度思考](https://help.aliyun.com/zh/model-studio/deep-thinking)
 - [DeepSeek API 文档](https://api-docs.deepseek.com/)

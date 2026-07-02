@@ -1,5 +1,5 @@
 /**
- * DuoYuanXApiClient — 多元探索 API HTTP 客户端
+ * CopilotPPApiClient — Copilot++ API HTTP 客户端
  * 封装 fetch + SSE 流式通信
  */
 
@@ -10,10 +10,10 @@ import type {
   ImageGenerationRequest,
   ImageGenerationResponse,
 } from './types';
-import { DuoYuanXError, DuoYuanXErrorCode, extractErrorFromResponse, wrapError } from './errors';
+import { CopilotPPError, CopilotPPErrorCode, extractErrorFromResponse, wrapError } from './errors';
 import { logger } from '../utils/logger';
 
-export class DuoYuanXApiClient {
+export class CopilotPPApiClient {
   constructor(
     private readonly getBaseUrl: () => string,
     private readonly getApiKey: () => Promise<string | undefined>,
@@ -25,7 +25,7 @@ export class DuoYuanXApiClient {
   private async getHeaders(): Promise<Record<string, string>> {
     const apiKey = await this.getApiKey();
     if (!apiKey) {
-      throw new DuoYuanXError(DuoYuanXErrorCode.INVALID_API_KEY, 'API Key 未设置');
+      throw new CopilotPPError(CopilotPPErrorCode.INVALID_API_KEY, 'API Key 未设置');
     }
     return {
       'Authorization': `Bearer ${apiKey}`,
@@ -63,7 +63,7 @@ export class DuoYuanXApiClient {
 
       return (await resp.json()) as T;
     } catch (err) {
-      if (err instanceof DuoYuanXError) throw err;
+      if (err instanceof CopilotPPError) throw err;
       throw wrapError(err);
     } finally {
       clearTimeout(timeoutId);
@@ -129,12 +129,12 @@ export class DuoYuanXApiClient {
       }
 
       if (!resp.body) {
-        throw new DuoYuanXError(DuoYuanXErrorCode.BAD_RESPONSE, '响应体为空');
+        throw new CopilotPPError(CopilotPPErrorCode.BAD_RESPONSE, '响应体为空');
       }
 
       return resp;
     } catch (err) {
-      if (err instanceof DuoYuanXError) throw err;
+      if (err instanceof CopilotPPError) throw err;
       throw wrapError(err);
     } finally {
       clearTimeout(timeoutId);

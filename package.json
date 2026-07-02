@@ -12,7 +12,7 @@
   "icon": "resources/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zenxiy/copilot-plus-plus"
+    "url": "https://github.com/ZzXy47/copilot-plus-plus"
   },
   "engines": {
     "vscode": "^1.120.0",
@@ -372,9 +372,9 @@
     "@vitest/coverage-v8": "^2.1.0"
   },
   "bugs": {
-    "url": "https://github.com/zenxiy/copilot-plus-plus/issues"
+    "url": "https://github.com/ZzXy47/copilot-plus-plus/issues"
   },
-  "homepage": "https://github.com/zenxiy/copilot-plus-plus#readme",
+  "homepage": "https://github.com/ZzXy47/copilot-plus-plus#readme",
   "galleryBanner": {
     "color": "#1e1e2e",
     "theme": "dark"

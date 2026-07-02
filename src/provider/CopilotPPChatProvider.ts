@@ -1,5 +1,5 @@
 /**
- * DuoYuanXChatProvider — VS Code LanguageModelChatProvider 实现
+ * CopilotPPChatProvider — VS Code LanguageModelChatProvider 实现
  * 将任意 OpenAI 兼容 API 接入 VS Code Copilot Chat
  */
 
@@ -9,13 +9,13 @@ import { ModelManager } from '../services/ModelManager';
 import { StatusBarManager } from '../services/StatusBarManager';
 import { RequestBuilder } from '../services/RequestBuilder';
 import { StreamHandler } from '../services/StreamHandler';
-import { DuoYuanXApiClient } from '../api/DuoYuanXApiClient';
-import type { DuoYuanXModelInfo } from '../models/ModelInfo';
+import { CopilotPPApiClient } from '../api/CopilotPPApiClient';
+import type { CopilotPPModelInfo } from '../models/ModelInfo';
 import { estimateMessagesTokens, updateCharsPerToken, DEFAULT_CHARS_PER_TOKEN } from '../utils/tokenEstimator';
-import { DuoYuanXError, DuoYuanXErrorCode, ERROR_MESSAGES } from '../api/errors';
+import { CopilotPPError, CopilotPPErrorCode, ERROR_MESSAGES } from '../api/errors';
 import { logger } from '../utils/logger';
 
-export class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<DuoYuanXModelInfo> {
+export class CopilotPPChatProvider implements vscode.LanguageModelChatProvider<CopilotPPModelInfo> {
   private readonly _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChangeLanguageModelChatInformation = this._onDidChange.event;
   private isActive = true;
@@ -56,7 +56,7 @@ export class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<Du
   async provideLanguageModelChatInformation(
     _options: vscode.PrepareLanguageModelChatModelOptions,
     _token: vscode.CancellationToken,
-  ): Promise<DuoYuanXModelInfo[]> {
+  ): Promise<CopilotPPModelInfo[]> {
     if (!this.isActive) return [];
 
     const hasKey = await this.configManager.hasApiKey();
@@ -104,7 +104,7 @@ export class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<Du
   // ─── Token 估算 ───
 
   async provideTokenCount(
-    _model: DuoYuanXModelInfo,
+    _model: CopilotPPModelInfo,
     text: string | vscode.LanguageModelChatRequestMessage,
     _token: vscode.CancellationToken,
   ): Promise<number> {
@@ -128,7 +128,7 @@ export class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<Du
   /** 上下文保留比例：输出的 token 预算 */
 
   async provideLanguageModelChatResponse(
-    model: DuoYuanXModelInfo,
+    model: CopilotPPModelInfo,
     messages: readonly vscode.LanguageModelChatRequestMessage[],
     options: vscode.ProvideLanguageModelChatResponseOptions,
     progress: vscode.Progress<vscode.LanguageModelResponsePart>,
@@ -160,7 +160,7 @@ export class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<Du
         const providers = this.configManager.getProviders();
         if (providers[vendor]) {
           // 创建供应商专属 ApiClient + StreamHandler
-          const vendorClient = new DuoYuanXApiClient(
+          const vendorClient = new CopilotPPApiClient(
             () => providers[vendor]!.baseUrl,
             () => this.configManager.getApiKey(vendor),
             this.configManager.getRequestTimeout(),
@@ -205,12 +205,12 @@ export class DuoYuanXChatProvider implements vscode.LanguageModelChatProvider<Du
   ): Promise<void> {
     let message: string;
 
-    if (err instanceof DuoYuanXError) {
+    if (err instanceof CopilotPPError) {
       message = ERROR_MESSAGES[err.code] ?? err.message;
 
-      if (err.code === DuoYuanXErrorCode.INVALID_API_KEY) {
+      if (err.code === CopilotPPErrorCode.INVALID_API_KEY) {
         vscode.window.showErrorMessage(`${message} 使用 "Copilot++: 设置 API Key" 命令配置。`);
-      } else if (err.code === DuoYuanXErrorCode.MODEL_NOT_FOUND) {
+      } else if (err.code === CopilotPPErrorCode.MODEL_NOT_FOUND) {
         vscode.window.showWarningMessage(message);
       }
     } else {

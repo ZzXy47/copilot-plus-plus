@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { DuoYuanXApiClient } from '../api/DuoYuanXApiClient';
+import { CopilotPPApiClient } from '../api/CopilotPPApiClient';
 import { ConfigManager } from './ConfigManager';
 import { ModelManager } from './ModelManager';
 import type { ImageGenerationRequest, ImageResult } from '../api/types';
@@ -42,7 +42,7 @@ export class ImageGenerator {
   constructor(
     private readonly configManager: ConfigManager,
     private readonly modelManager: ModelManager,
-    private readonly apiClient: DuoYuanXApiClient,
+    private readonly apiClient: CopilotPPApiClient,
   ) {}
 
   /** 生成图像并展示 */

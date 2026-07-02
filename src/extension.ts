@@ -1,5 +1,5 @@
 /**
- * 多元探索 (Copilot++) Copilot VS Code 插件 — 入口
+ * Copilot++ VS Code 插件 — 入口
  */
 
 import * as vscode from 'vscode';
@@ -10,13 +10,13 @@ import { StreamHandler } from './services/StreamHandler';
 import { ImageGenerator } from './services/ImageGenerator';
 import { StatusBarManager } from './services/StatusBarManager';
 import { ModelManagerPanel } from './panels/ModelManagerPanel';
-import { DuoYuanXApiClient } from './api/DuoYuanXApiClient';
-import { DuoYuanXChatProvider } from './provider/DuoYuanXChatProvider';
-import type { DuoYuanXModelInfo } from './models/ModelInfo';
+import { CopilotPPApiClient } from './api/CopilotPPApiClient';
+import { CopilotPPChatProvider } from './provider/CopilotPPChatProvider';
+import type { CopilotPPModelInfo } from './models/ModelInfo';
 import { registerCommands } from './commands';
 import { logger } from './utils/logger';
 
-let chatProvider: DuoYuanXChatProvider | undefined;
+let chatProvider: CopilotPPChatProvider | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger.init();
@@ -30,7 +30,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   await configManager.migrateFromLegacy();
 
   // 延迟创建 API Client（依赖供应商 API Key）
-  const apiClient = new DuoYuanXApiClient(
+  const apiClient = new CopilotPPApiClient(
     () => {
       const providers = configManager.getProviders();
       const first = Object.keys(providers)[0];
@@ -46,7 +46,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const imageGenerator = new ImageGenerator(
     configManager,
     modelManager,
-    new DuoYuanXApiClient(
+    new CopilotPPApiClient(
       () => {
         const providers = configManager.getProviders();
         const first = Object.keys(providers)[0];
@@ -58,7 +58,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
   const statusBar = new StatusBarManager();
 
-  chatProvider = new DuoYuanXChatProvider(
+  chatProvider = new CopilotPPChatProvider(
     configManager,
     modelManager,
     requestBuilder,
@@ -88,12 +88,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     vscode.commands.registerCommand('copilotpp.manage', async (args) => {
-      const models = args?.models as DuoYuanXModelInfo[] | undefined;
+      const models = args?.models as CopilotPPModelInfo[] | undefined;
       const providers = configManager.getProviders();
       const providerInfo = Object.fromEntries(
         Object.entries(providers).map(([k, v]) => [k, { label: v.label, baseUrl: v.baseUrl }])
       );
-      let displayModels: DuoYuanXModelInfo[];
+      let displayModels: CopilotPPModelInfo[];
       if (currentVendor && providers[currentVendor]) {
         displayModels = await modelManager.getModelsForVendor(currentVendor);
       } else {

@@ -7,7 +7,7 @@ import type { ApiModelInfo } from '../api/types';
 import type { ModelSettings } from './settings';
 
 /** 扩展的 VS Code LM 模型信息 */
-export interface DuoYuanXModelInfo extends vscode.LanguageModelChatInformation {
+export interface CopilotPPModelInfo extends vscode.LanguageModelChatInformation {
   /** API 模型 ID */
   modelId: string;
   /** 模型类型 */
@@ -25,14 +25,14 @@ export interface DuoYuanXModelInfo extends vscode.LanguageModelChatInformation {
  * @param apiModel API 返回的原始模型信息
  * @param settings 来自 copilotpp.models 的用户设置
  */
-export function toVSCodeModelInfo(apiModel: ApiModelInfo, settings?: Required<ModelSettings>): DuoYuanXModelInfo {
+export function toVSCodeModelInfo(apiModel: ApiModelInfo, settings?: Required<ModelSettings>): CopilotPPModelInfo {
   const family = inferFamily(apiModel.id);
   const modelType = apiModel.supported_endpoint_types?.includes('image-generation')
     ? 'image' : 'text';
 
   const name = toDisplayName(apiModel.id);
 
-  const info: DuoYuanXModelInfo = {
+  const info: CopilotPPModelInfo = {
     id: apiModel.id,
     name,
     family,

@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import { ConfigManager } from './services/ConfigManager';
 import { ModelManager } from './services/ModelManager';
 import { ImageGenerator } from './services/ImageGenerator';
-import { DuoYuanXChatProvider } from './provider/DuoYuanXChatProvider';
+import { CopilotPPChatProvider } from './provider/CopilotPPChatProvider';
 import { logger } from './utils/logger';
 
 export function registerCommands(
@@ -14,7 +14,7 @@ export function registerCommands(
   deps: {
     configManager: ConfigManager;
     modelManager: ModelManager;
-    chatProvider: DuoYuanXChatProvider;
+    chatProvider: CopilotPPChatProvider;
     imageGenerator: ImageGenerator;
   },
 ): void {

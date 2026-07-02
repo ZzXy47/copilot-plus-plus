@@ -9,9 +9,9 @@
 
 import * as vscode from 'vscode';
 import type { ChatCompletionRequest } from '../api/types';
-import { DuoYuanXApiClient } from '../api/DuoYuanXApiClient';
+import { CopilotPPApiClient } from '../api/CopilotPPApiClient';
 import { parseSSEStream } from '../utils/sseParser';
-import { DuoYuanXError, DuoYuanXErrorCode } from '../api/errors';
+import { CopilotPPError, CopilotPPErrorCode } from '../api/errors';
 import { logger } from '../utils/logger';
 
 export interface StreamResult {
@@ -27,7 +27,7 @@ const USAGE_MIME = 'usage';
 
 export class StreamHandler {
   constructor(
-    private readonly apiClient: DuoYuanXApiClient,
+    private readonly apiClient: CopilotPPApiClient,
   ) {}
 
   /**
@@ -42,7 +42,7 @@ export class StreamHandler {
     const resp = await this.apiClient.streamChat(body);
 
     if (!resp.body) {
-      throw new DuoYuanXError(DuoYuanXErrorCode.BAD_RESPONSE, '空响应体');
+      throw new CopilotPPError(CopilotPPErrorCode.BAD_RESPONSE, '空响应体');
     }
 
     let contentLength = 0;

@@ -4,12 +4,12 @@
  */
 
 import * as vscode from 'vscode';
-import type { DuoYuanXModelInfo } from '../models/ModelInfo';
+import type { CopilotPPModelInfo } from '../models/ModelInfo';
 
 export class ModelManagerPanel {
   private panel: vscode.WebviewPanel | undefined;
 
-  async show(models: DuoYuanXModelInfo[], configManager: {
+  async show(models: CopilotPPModelInfo[], configManager: {
     getModelSettingsMap(): Record<string, any>;
     saveModelSettings(map: Record<string, any>): Promise<void>;
   }, providers?: Record<string, { label: string; baseUrl: string }>, selectedVendor?: string): Promise<void> {
@@ -65,7 +65,7 @@ export class ModelManagerPanel {
     this.panel.onDidDispose(() => { this.panel = undefined; });
   }
 
-  private buildHtml(models: DuoYuanXModelInfo[], currentSettings: Record<string, any>, providers?: Record<string, { label: string; baseUrl: string }>, selectedVendor?: string): string {
+  private buildHtml(models: CopilotPPModelInfo[], currentSettings: Record<string, any>, providers?: Record<string, { label: string; baseUrl: string }>, selectedVendor?: string): string {
     const modelRows = models
       .filter(m => m.modelType === 'text')
       .map(m => this.buildModelRow(m, currentSettings[m.modelId] ?? {}))
@@ -415,7 +415,7 @@ ${modelRows}
     </div>`;
   }
 
-  private buildModelRow(m: DuoYuanXModelInfo, settings: Record<string, any> = {}): string {
+  private buildModelRow(m: CopilotPPModelInfo, settings: Record<string, any> = {}): string {
     const ctx = settings.contextWindow ?? m.maxInputTokens ?? 128000;
     const out = settings.maxOutputTokens ?? m.maxOutputTokens ?? 4096;
     const vision = settings.vision ?? false;

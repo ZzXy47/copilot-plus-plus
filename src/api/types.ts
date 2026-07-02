@@ -1,5 +1,5 @@
 /**
- * 多元探索 (DuoYuanX) API 类型定义
+ * Copilot++ API 类型定义
  */
 
 /** API 返回的原始模型信息 */

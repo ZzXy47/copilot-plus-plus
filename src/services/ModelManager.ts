@@ -5,22 +5,22 @@
 
 import * as vscode from 'vscode';
 import type { ApiModelInfo } from '../api/types';
-import type { DuoYuanXModelInfo } from '../models/ModelInfo';
+import type { CopilotPPModelInfo } from '../models/ModelInfo';
 import { toVSCodeModelInfo } from '../models/ModelInfo';
-import { DuoYuanXApiClient } from '../api/DuoYuanXApiClient';
+import { CopilotPPApiClient } from '../api/CopilotPPApiClient';
 import { ConfigManager } from './ConfigManager';
 import { logger } from '../utils/logger';
 
 export class ModelManager {
-  private modelCache: DuoYuanXModelInfo[] = [];
+  private modelCache: CopilotPPModelInfo[] = [];
   private lastFetchTime = 0;
   private unavailableModels = new Set<string>();
   /** 分供应商模型缓存 */
-  private vendorCache = new Map<string, { models: DuoYuanXModelInfo[]; time: number }>();
+  private vendorCache = new Map<string, { models: CopilotPPModelInfo[]; time: number }>();
 
   constructor(
     private readonly configManager: ConfigManager,
-    private readonly apiClient: DuoYuanXApiClient,
+    private readonly apiClient: CopilotPPApiClient,
   ) {}
 
   // ─── 模型列表获取 ───
@@ -28,7 +28,7 @@ export class ModelManager {
   /**
    * 获取所有模型（多供应商合并，模型 ID 带 vendor/ 前缀）
    */
-  async getModels(forceRefresh = false): Promise<DuoYuanXModelInfo[]> {
+  async getModels(forceRefresh = false): Promise<CopilotPPModelInfo[]> {
     const ttl = this.configManager.getModelCacheTTL() * 1000;
     const now = Date.now();
 
@@ -45,7 +45,7 @@ export class ModelManager {
     }
 
     // 多供应商：并行拉取，模型 ID 加前缀
-    const allModels: DuoYuanXModelInfo[] = [];
+    const allModels: CopilotPPModelInfo[] = [];
     for (const vendor of vendorIds) {
       try {
         const models = await this.fetchFromVendor(vendor, forceRefresh);
@@ -62,7 +62,7 @@ export class ModelManager {
   }
 
   /** 单供应商获取（使用共享 ApiClient，无前缀） */
-  private async fetchSingleProvider(vendor?: string): Promise<DuoYuanXModelInfo[]> {
+  private async fetchSingleProvider(vendor?: string): Promise<CopilotPPModelInfo[]> {
     try {
       const resp = await this.apiClient.listModels();
       const apiModels = resp.data ?? [];
@@ -85,7 +85,7 @@ export class ModelManager {
   }
 
   /** 从指定供应商获取模型（模型 ID 加 vendor/ 前缀） */
-  async fetchFromVendor(vendor: string, forceRefresh = false): Promise<DuoYuanXModelInfo[]> {
+  async fetchFromVendor(vendor: string, forceRefresh = false): Promise<CopilotPPModelInfo[]> {
     const ttl = this.configManager.getModelCacheTTL() * 1000;
     const now = Date.now();
     const cached = this.vendorCache.get(vendor);
@@ -97,7 +97,7 @@ export class ModelManager {
     const provider = this.configManager.getProviders()[vendor];
     if (!provider) return [];
 
-    const vendorClient = new DuoYuanXApiClient(
+    const vendorClient = new CopilotPPApiClient(
       () => provider.baseUrl,
       () => this.configManager.getApiKey(vendor),
       this.configManager.getRequestTimeout(),
@@ -133,11 +133,11 @@ export class ModelManager {
   }
 
   /** 获取指定供应商的模型（无前缀，用于 Webview 按供应商展示） */
-  async getModelsForVendor(vendor: string): Promise<DuoYuanXModelInfo[]> {
+  async getModelsForVendor(vendor: string): Promise<CopilotPPModelInfo[]> {
     const provider = this.configManager.getProviders()[vendor];
     if (!provider) return [];
 
-    const vendorClient = new DuoYuanXApiClient(
+    const vendorClient = new CopilotPPApiClient(
       () => provider.baseUrl,
       () => this.configManager.getApiKey(vendor),
       this.configManager.getRequestTimeout(),
@@ -161,7 +161,7 @@ export class ModelManager {
   /**
    * 获取聊天模型列表
    */
-  async getChatModels(): Promise<DuoYuanXModelInfo[]> {
+  async getChatModels(): Promise<CopilotPPModelInfo[]> {
     const models = await this.getModels();
     return models
       .filter(m => m.modelType === 'text' && m.available);
@@ -170,7 +170,7 @@ export class ModelManager {
   /**
    * 获取图像模型列表
    */
-  async getImageModels(): Promise<DuoYuanXModelInfo[]> {
+  async getImageModels(): Promise<CopilotPPModelInfo[]> {
     const models = await this.getModels();
     return models
       .filter(m => m.modelType === 'image');
@@ -181,7 +181,7 @@ export class ModelManager {
   /**
    * 查找指定模型
    */
-  async findModel(modelId: string): Promise<DuoYuanXModelInfo | undefined> {
+  async findModel(modelId: string): Promise<CopilotPPModelInfo | undefined> {
     const models = await this.getModels();
     return models.find(m => m.modelId === modelId);
   }
@@ -189,7 +189,7 @@ export class ModelManager {
   /**
    * 获取默认模型
    */
-  async getDefaultModel(): Promise<DuoYuanXModelInfo | undefined> {
+  async getDefaultModel(): Promise<CopilotPPModelInfo | undefined> {
     const defaultModelId = this.configManager.getDefaultModel();
     return this.findModel(defaultModelId);
   }
@@ -224,7 +224,7 @@ export class ModelManager {
   /**
    * 强制刷新模型列表
    */
-  async refreshModels(): Promise<DuoYuanXModelInfo[]> {
+  async refreshModels(): Promise<CopilotPPModelInfo[]> {
     this.lastFetchTime = 0;  // 失效缓存
     return this.getModels(true);
   }

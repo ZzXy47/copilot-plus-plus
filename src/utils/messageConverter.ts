@@ -1,12 +1,12 @@
 /**
- * 消息格式转换：VS Code LanguageModelChatRequestMessage ↔ DuoYuanX API ChatMessage
+ * 消息格式转换：VS Code LanguageModelChatRequestMessage ↔ Copilot++ API ChatMessage
  */
 
 import * as vscode from 'vscode';
 import type { ChatMessage, ChatContentPart } from '../api/types';
 
 /**
- * 将 VS Code 聊天请求消息转换为 DuoYuanX API 格式
+ * 将 VS Code 聊天请求消息转换为 Copilot++ API 格式
  */
 export function convertMessages(
   messages: readonly vscode.LanguageModelChatRequestMessage[],
