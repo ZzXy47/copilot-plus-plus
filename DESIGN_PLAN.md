@@ -8,6 +8,44 @@
 
 ---
 
+## 🇬🇧 English Abstract
+
+This document is the complete technical design for the **Copilot++** VS Code extension, which bridges any OpenAI-compatible API to GitHub Copilot Chat through a custom `LanguageModelChatProvider` implementation.
+
+### Key Highlights
+
+| Area | Summary |
+|------|---------|
+| **Validated Models** | 8 models verified with real API keys: GPT-5.5, Claude Opus 4.8, Gemini 3.1 Pro, DeepSeek V4 Pro, Qwen 3.7 Max, GLM 5.2, GPT Image 2, GPT Image 2 (All) |
+| **Architecture** | Single `ChatProvider` class implementing VS Code's `LanguageModelChatProvider` interface, with pluggable thinking-mode handlers per model family |
+| **Thinking Modes** | 9 parameter patterns unified under a **Low / Medium / High** effort selector — each auto-mapped to the model's native API format (`reasoning.effort`, `thinking.type`, `enable_thinking`, etc.) |
+| **Image Generation** | Integrated DALL·E-compatible image endpoint with Webview preview, resolution picker (1024×1024 / 1792×1024 / 1024×1792), quality options (standard/hd), and save-to-disk |
+| **Secret Management** | API keys stored in VS Code's `SecretStorage` with multi-key support; GLM XML leak filtering and tool-call accumulation safeguards |
+| **Dev Phases** | 4 phases over 8 weeks: Core Provider → Webview Config → Image Gen → Polish & Ship |
+
+### Architecture at a Glance
+
+```
+User (Copilot Chat)
+    │
+    ▼
+ChatProvider (LanguageModelChatProvider)
+    ├── RequestBuilder    — builds OpenAI-compatible request body
+    ├── ThinkingMapper    — maps effort level → model-specific params
+    ├── ApiClient         — HTTP POST + SSE streaming
+    ├── StreamHandler     — SSE chunks → VS Code LanguageModelTextPart
+    ├── ConfigManager     — multi-provider settings (URL, key, models)
+    ├── ModelManager      — fetches /v1/models per provider
+    ├── ImageGenerator    — DALL·E-compatible image endpoint
+    └── SecretStore       — encryption-backed key storage
+```
+
+The full document below (in Chinese) contains detailed model registry code, parameter mapping tables, error handling strategies, and implementation checklists.
+
+---
+
+---
+
 ## ⚡ 模型验证结果摘要
 
 通过 API Key `sk-CeCKM8eHQORLh0NMDc46Fb79F40f4c87A9F3646b165c52F3` 实际测试：
