@@ -1,0 +1,382 @@
+{
+  "name": "copilot-plus-plus",
+  "displayName": "Copilot++ — Universal AI Model Gateway",
+  "description": "Connect any OpenAI-compatible API to GitHub Copilot Chat. Multi-provider, auto model discovery, visual config.",
+  "version": "1.1.0",
+  "preview": false,
+  "publisher": "ZENXIY",
+  "author": {
+    "name": "ZENXIY"
+  },
+  "license": "MIT",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zenxiy/copilot-plus-plus"
+  },
+  "engines": {
+    "vscode": "^1.120.0",
+    "node": ">=24"
+  },
+  "categories": [
+    "Chat",
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "ai",
+    "llm",
+    "chat",
+    "openai",
+    "deepseek",
+    "claude",
+    "gemini",
+    "qwen",
+    "glm",
+    "provider",
+    "gateway"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "enabledApiProposals": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "copilotpp",
+        "displayName": "Copilot++",
+        "managementCommand": "copilotpp.manage"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot++",
+      "properties": {
+        "copilotpp.baseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "主 API 地址（必填）— 用于文本/多模态推理模型。如 https://api.openai.com",
+          "order": 1
+        },
+        "copilotpp.imageBaseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "图像 API 地址（选填）— 用于图像生成模型。留空则使用主 API 地址",
+          "order": 2
+        },
+        "copilotpp.defaultModel": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "默认使用的聊天模型 ID。可通过 `Copilot++: 选择默认模型` 命令快速切换",
+          "order": 3
+        },
+        "copilotpp.models": {
+          "type": "object",
+          "default": {
+            "*": {
+              "contextWindow": 128000,
+              "maxOutputTokens": 4096,
+              "tools": false,
+              "vision": false,
+              "thinkingType": "disabled"
+            }
+          },
+          "markdownDescription": "按模型 ID 配置能力参数。`*` 为通配默认值。\n\n示例：\n```json\n\"copilotpp.models\": {\n  \"gpt-5.5\": {\n    \"contextWindow\": 1000000,\n    \"maxOutputTokens\": 128000,\n    \"tools\": true,\n    \"vision\": true,\n    \"thinkingType\": \"reasoning_object\",\n    \"thinkingEffort\": \"medium\"\n  }\n}\n```\n\n配置后在 Copilot 模型选择器中切换模型即可生效。",
+          "order": 5,
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "contextWindow": {
+                "type": "number",
+                "minimum": 4096,
+                "description": "上下文窗口大小 (tokens)"
+              },
+              "maxOutputTokens": {
+                "type": "number",
+                "minimum": 256,
+                "description": "最大输出 Token 数"
+              },
+              "vision": {
+                "type": "boolean",
+                "description": "是否支持视觉/多模态"
+              },
+              "tools": {
+                "type": "boolean",
+                "description": "是否支持工具调用 (function calling)"
+              },
+              "thinkingType": {
+                "type": "string",
+                "enum": [
+                  "disabled",
+                  "auto",
+                  "reasoning_object",
+                  "thinking_type",
+                  "thinking_adaptive",
+                  "thinking_enabled",
+                  "enable_thinking",
+                  "thinking_config",
+                  "thinking_level",
+                  "preserve_thinking"
+                ],
+                "description": "思考模式类型"
+              },
+              "thinkingEffort": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high",
+                  "xhigh"
+                ],
+                "description": "思考强度"
+              },
+              "thinkingCanDisable": {
+                "type": "boolean",
+                "description": "思考是否可以关闭"
+              },
+              "disableTemperatureWhenThinking": {
+                "type": "boolean",
+                "description": "思考活跃时是否剥离 temperature 参数"
+              }
+            }
+          }
+        },
+        "copilotpp.modelCacheTTL": {
+          "type": "number",
+          "default": 300,
+          "minimum": 0,
+          "maximum": 3600,
+          "markdownDescription": "模型列表缓存时间（秒）。0 = 禁用缓存",
+          "order": 4
+        },
+        "copilotpp.requestTimeout": {
+          "type": "number",
+          "default": 120000,
+          "minimum": 10000,
+          "maximum": 600000,
+          "markdownDescription": "API 请求超时时间（毫秒）",
+          "order": 4
+        },
+        "copilotpp.modelOverrides": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "按模型 ID 覆盖默认参数。示例：`{ \"gpt-5.5\": { \"temperature\": 0.5 } }`",
+          "order": 6,
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "temperature": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "采样温度 (0-2)"
+              },
+              "topP": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "核采样参数 (0-1)"
+              },
+              "maxTokens": {
+                "type": "number",
+                "minimum": 1,
+                "description": "最大生成 Token 数"
+              },
+              "reasoningEffort": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "description": "推理强度"
+              },
+              "thinkingEnabled": {
+                "type": "boolean",
+                "description": "是否启用思考模式"
+              },
+              "stream": {
+                "type": "boolean",
+                "description": "是否启用流式输出"
+              }
+            }
+          }
+        },
+        "copilotpp.imageDefaults": {
+          "type": "object",
+          "default": {
+            "model": "gpt-image-2",
+            "ratio": "1:1",
+            "count": 1,
+            "responseFormat": "url"
+          },
+          "properties": {
+            "model": {
+              "type": "string",
+              "default": "gpt-image-2",
+              "description": "默认图像生成模型"
+            },
+            "ratio": {
+              "type": "string",
+              "enum": [
+                "1:1",
+                "16:9",
+                "9:16",
+                "4:3",
+                "3:4",
+                "3:2",
+                "2:3",
+                "21:9"
+              ],
+              "default": "1:1",
+              "description": "默认图像比例"
+            },
+            "count": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 1,
+              "description": "默认生成数量"
+            },
+            "responseFormat": {
+              "type": "string",
+              "enum": [
+                "url",
+                "b64_json"
+              ],
+              "default": "url",
+              "description": "默认返回格式"
+            }
+          },
+          "order": 6
+        },
+        "copilotpp.providers": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "供应商列表（自动管理）。添加 API 后自动生成，移除时自动清除。",
+          "order": 0,
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "baseUrl": {
+                "type": "string",
+                "description": "API 地址"
+              },
+              "label": {
+                "type": "string",
+                "description": "显示标签"
+              },
+              "createdAt": {
+                "type": "number",
+                "description": "创建时间"
+              }
+            }
+          }
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "copilotpp.manage",
+        "title": "Copilot++: 模型配置面板",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "copilotpp.resetApi",
+        "title": "Copilot++: 重置 API 连接",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "copilotpp.removeProvider",
+        "title": "Copilot++: 移除供应商"
+      },
+      {
+        "command": "copilotpp.setApiKey",
+        "title": "Copilot++: 设置 API Key & URL",
+        "icon": "$(key)"
+      },
+      {
+        "command": "copilotpp.refreshModels",
+        "title": "Copilot++: 刷新模型列表",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "copilotpp.selectModel",
+        "title": "Copilot++: 选择默认模型",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "copilotpp.openModelConfig",
+        "title": "Copilot++: 模型参数配置",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "copilotpp.generateImage",
+        "title": "Copilot++: 生成图像",
+        "icon": "$(image)"
+      },
+      {
+        "command": "copilotpp.checkBalance",
+        "title": "Copilot++: 状态概览",
+        "icon": "$(dashboard)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "copilotpp.manage"
+        },
+        {
+          "command": "copilotpp.resetApi"
+        },
+        {
+          "command": "copilotpp.setApiKey"
+        },
+        {
+          "command": "copilotpp.refreshModels"
+        },
+        {
+          "command": "copilotpp.selectModel"
+        },
+        {
+          "command": "copilotpp.openModelConfig"
+        },
+        {
+          "command": "copilotpp.generateImage"
+        },
+        {
+          "command": "copilotpp.checkBalance"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build && node -e \"try{require('fs').readdirSync('.').filter(f=>f.startsWith('._')).forEach(f=>require('fs').unlinkSync(f))}catch(e){}\"",
+    "build": "node -e \"require('esbuild').build({entryPoints:['src/extension.ts'],bundle:true,external:['vscode'],outdir:'dist',format:'cjs',platform:'node',target:'node18',sourcemap:true,logLevel:'info'}).then(()=>{try{require('fs').readdirSync('dist').filter(f=>f.startsWith('._')).forEach(f=>require('fs').unlinkSync('dist/'+f))}catch(e){}}).catch(e=>{console.error(e);process.exit(1)})\"",
+    "watch": "node -e \"require('esbuild').context({entryPoints:['src/extension.ts'],bundle:true,external:['vscode'],outdir:'dist',format:'cjs',platform:'node',target:'node18',sourcemap:true,logLevel:'info'}).then(ctx=>ctx.watch()).catch(e=>{console.error(e);process.exit(1)})\"",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.93.0",
+    "@vscode/test-electron": "^2.4.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.0"
+  },
+  "bugs": {
+    "url": "https://github.com/zenxiy/copilot-plus-plus/issues"
+  },
+  "homepage": "https://github.com/zenxiy/copilot-plus-plus#readme",
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  }
+}
