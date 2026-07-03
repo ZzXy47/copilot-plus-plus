@@ -61,17 +61,26 @@ export class ModelManager {
     return allModels;
   }
 
-  /** 单供应商获取（使用共享 ApiClient，无前缀） */
+  /** 单供应商获取（使用共享 ApiClient，模型 ID 加 vendor/ 前缀） */
   private async fetchSingleProvider(vendor?: string): Promise<CopilotPPModelInfo[]> {
     try {
       const resp = await this.apiClient.listModels();
       const apiModels = resp.data ?? [];
+      const prefix = vendor ? vendor + '/' : '';
       const models = apiModels
         .filter(m => this.isRelevantModel(m))
         .map(m => {
-          const settings = this.configManager.getModelSettings(m.id);
+          const prefixedId = prefix + m.id;
+          const settings = this.configManager.getModelSettings(prefixedId);
           const info = toVSCodeModelInfo(m, settings);
-          if (this.unavailableModels.has(m.id)) info.available = false;
+          (info as any).id = prefixedId;
+          info.modelId = prefixedId;
+          if (vendor) {
+            // 追加供应商标签到名称
+            const provider = this.configManager.getProviders()[vendor];
+            if (provider) (info as any).name = `${info.name} (${provider.label})`;
+          }
+          if (this.unavailableModels.has(prefixedId)) info.available = false;
           return info;
         });
       this.modelCache = models;
@@ -112,7 +121,8 @@ export class ModelManager {
         .filter(m => this.isRelevantModel(m))
         .map(m => {
           const prefixedId = prefix + m.id;
-          const settings = this.configManager.getModelSettings(m.id);
+          // 使用 vendor/modelId 作为 key 查找用户自定义设置
+          const settings = this.configManager.getModelSettings(prefixedId);
           // 用原始 ID 生成信息，然后覆盖 ID 为带前缀的
           const info = toVSCodeModelInfo(m, settings);
           (info as any).id = prefixedId;
@@ -132,7 +142,7 @@ export class ModelManager {
     }
   }
 
-  /** 获取指定供应商的模型（无前缀，用于 Webview 按供应商展示） */
+  /** 获取指定供应商的模型（ID 加 vendor/ 前缀，用于 Webview 按供应商展示与保存） */
   async getModelsForVendor(vendor: string): Promise<CopilotPPModelInfo[]> {
     const provider = this.configManager.getProviders()[vendor];
     if (!provider) return [];
@@ -145,12 +155,20 @@ export class ModelManager {
 
     try {
       const resp = await vendorClient.listModels();
+      const prefix = vendor + '/';
       return (resp.data ?? [])
         .filter(m => this.isRelevantModel(m))
         .map(m => {
-          const settings = this.configManager.getModelSettings(m.id);
+          const prefixedId = prefix + m.id;
+          // 使用 vendor/modelId 作为 key 查找用户自定义设置
+          const settings = this.configManager.getModelSettings(prefixedId);
           const info = toVSCodeModelInfo(m, settings);
-          if (this.unavailableModels.has(m.id)) info.available = false;
+          // 覆盖 ID 为带 vendor/ 前缀的，确保保存时按供应商隔离
+          (info as any).id = prefixedId;
+          info.modelId = prefixedId;
+          // 追加供应商标签到名称，避免多供应商同名模型混淆
+          (info as any).name = `${info.name} (${provider.label})`;
+          if (this.unavailableModels.has(prefixedId)) info.available = false;
           return info;
         });
     } catch {

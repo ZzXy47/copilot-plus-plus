@@ -275,10 +275,13 @@ export class ConfigManager {
     return resolveModelSettings(map, modelId);
   }
 
+  /** 合并保存：读取现有设置，只更新变更的 key，避免覆盖其他供应商的配置 */
   async saveModelSettings(map: ModelSettingsMap): Promise<void> {
+    const existing = this.getModelSettingsMap();
+    const merged = { ...existing, ...map };
     await vscode.workspace
       .getConfiguration('copilotpp')
-      .update('models', map, vscode.ConfigurationTarget.Global);
+      .update('models', merged, vscode.ConfigurationTarget.Global);
   }
 
   // ─── 图像默认配置 ───

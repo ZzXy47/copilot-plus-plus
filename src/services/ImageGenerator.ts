@@ -102,8 +102,12 @@ export class ImageGenerator {
       },
       async (_progress, token) => {
         try {
+          // 剥离 vendor/ 前缀，API 只需要纯模型名
+          const pureModelId = model.modelId.includes('/')
+            ? model.modelId.substring(model.modelId.indexOf('/') + 1)
+            : model.modelId;
           const req: ImageGenerationRequest = {
-            model: model.modelId,
+            model: pureModelId,
             prompt: prompt.trim(),
             n: imageDefaults.count,
             size,

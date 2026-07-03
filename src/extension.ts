@@ -13,6 +13,7 @@ import { ModelManagerPanel } from './panels/ModelManagerPanel';
 import { CopilotPPApiClient } from './api/CopilotPPApiClient';
 import { CopilotPPChatProvider } from './provider/CopilotPPChatProvider';
 import type { CopilotPPModelInfo } from './models/ModelInfo';
+import { resolveModelSpec } from './services/ModelSpecProvider';
 import { registerCommands } from './commands';
 import { logger } from './utils/logger';
 
@@ -93,14 +94,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const providerInfo = Object.fromEntries(
         Object.entries(providers).map(([k, v]) => [k, { label: v.label, baseUrl: v.baseUrl }])
       );
-      let displayModels: CopilotPPModelInfo[];
-      if (currentVendor && providers[currentVendor]) {
-        displayModels = await modelManager.getModelsForVendor(currentVendor);
-      } else {
-        displayModels = models ?? await modelManager.getModels(true);
+      // 始终获取全部模型，供应商过滤由 Webview 侧 CSS 完成
+      const displayModels = models ?? await modelManager.getModels(true);
+      // 为每个模型解析参数规范（用于面板中的下拉候选菜单）
+      const specsMap: Record<string, ReturnType<typeof resolveModelSpec>> = {};
+      for (const m of displayModels) {
+        specsMap[m.modelId] = resolveModelSpec(m.modelId);
       }
       chatProvider?.refreshModelPicker();
-      modelPanel.show(displayModels, configManager, providerInfo, currentVendor);
+      modelPanel.show(displayModels, configManager, providerInfo, currentVendor, specsMap);
     }),
   );
 

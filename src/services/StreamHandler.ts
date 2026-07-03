@@ -52,7 +52,11 @@ export class StreamHandler {
     let completionTokens = 0;
 
     // GLM 系列标识（需 XML 过滤）
-    const isGlm = modelId.startsWith('glm-');
+    // 兼容 vendor/modelId 格式（如 zhipu/glm-5.2）
+    const effectiveModelId = modelId.includes('/')
+      ? modelId.substring(modelId.indexOf('/') + 1)
+      : modelId;
+    const isGlm = effectiveModelId.startsWith('glm-');
 
     // 工具调用增量累积（按 index）
     const pendingToolCalls = new Map<number, {

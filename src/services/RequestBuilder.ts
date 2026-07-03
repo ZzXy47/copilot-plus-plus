@@ -25,8 +25,13 @@ export class RequestBuilder {
     const settings = this.configManager.getModelSettings(modelId);
     const apiMessages = convertMessages(messages);
 
+    // 剥离 vendor/ 前缀，API 只需要纯模型名
+    const pureModelId = modelId.includes('/')
+      ? modelId.substring(modelId.indexOf('/') + 1)
+      : modelId;
+
     const body: ChatCompletionRequest = {
-      model: modelId,
+      model: pureModelId,
       messages: apiMessages,
       stream: true,
     };
@@ -46,7 +51,7 @@ export class RequestBuilder {
       settings.disableTemperatureWhenThinking,
     );
 
-    const isGemini = modelId.startsWith('gemini-');
+    const isGemini = pureModelId.startsWith('gemini-');
     if (!isGemini && !thinkingState.disableTemperature) {
       body.temperature = (mo?.temperature as number | undefined) ?? 0.7;
     }

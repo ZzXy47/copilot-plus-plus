@@ -76,7 +76,7 @@ export class CopilotPPChatProvider implements vscode.LanguageModelChatProvider<C
       logger.info(`API 返回 ${models.length} 个原始模型`);
 
       const chatModels = models.filter(m => m.modelType === 'text' && m.available);
-      logger.info(`过滤后 ${chatModels.length} 个文本模型: ${chatModels.map(m => `${m.modelId}${(m as unknown as Record<string,unknown>).configurationSchema ? '[cfg]' : ''}`).join(', ')}`);
+      logger.info(`过滤后 ${chatModels.length} 个文本模型: ${chatModels.map(m => m.modelId).join(', ')}`);
 
       const result = chatModels.map(m => {
         const schema = (m as unknown as Record<string, unknown>).configurationSchema;
@@ -84,7 +84,7 @@ export class CopilotPPChatProvider implements vscode.LanguageModelChatProvider<C
           ...m,
           detail: hasKey ? m.detail : '请先设置 API Key',
           statusIcon: hasKey ? undefined : new vscode.ThemeIcon('warning'),
-          ...(schema ? { configurationSchema: schema } : {}),
+          configurationSchema: schema,
         };
       });
 

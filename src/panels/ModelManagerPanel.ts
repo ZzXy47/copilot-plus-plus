@@ -5,6 +5,7 @@
 
 import * as vscode from 'vscode';
 import type { CopilotPPModelInfo } from '../models/ModelInfo';
+import { type ModelParameterSpec, COMMON_CTX_OPTIONS, COMMON_OUT_OPTIONS } from '../data/modelSpecs';
 
 export class ModelManagerPanel {
   private panel: vscode.WebviewPanel | undefined;
@@ -12,10 +13,10 @@ export class ModelManagerPanel {
   async show(models: CopilotPPModelInfo[], configManager: {
     getModelSettingsMap(): Record<string, any>;
     saveModelSettings(map: Record<string, any>): Promise<void>;
-  }, providers?: Record<string, { label: string; baseUrl: string }>, selectedVendor?: string): Promise<void> {
+  }, providers?: Record<string, { label: string; baseUrl: string }>, selectedVendor?: string, specs?: Record<string, ModelParameterSpec>): Promise<void> {
     if (this.panel) {
       this.panel.reveal();
-      this.panel.webview.html = this.buildHtml(models, configManager.getModelSettingsMap(), providers, selectedVendor);
+      this.panel.webview.html = this.buildHtml(models, configManager.getModelSettingsMap(), providers, selectedVendor, specs);
       return;
     }
 
@@ -29,7 +30,7 @@ export class ModelManagerPanel {
       },
     );
 
-    this.panel.webview.html = this.buildHtml(models, configManager.getModelSettingsMap(), providers, selectedVendor);
+    this.panel.webview.html = this.buildHtml(models, configManager.getModelSettingsMap(), providers, selectedVendor, specs);
 
     this.panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'save') {
@@ -65,10 +66,10 @@ export class ModelManagerPanel {
     this.panel.onDidDispose(() => { this.panel = undefined; });
   }
 
-  private buildHtml(models: CopilotPPModelInfo[], currentSettings: Record<string, any>, providers?: Record<string, { label: string; baseUrl: string }>, selectedVendor?: string): string {
+  private buildHtml(models: CopilotPPModelInfo[], currentSettings: Record<string, any>, providers?: Record<string, { label: string; baseUrl: string }>, selectedVendor?: string, specs?: Record<string, ModelParameterSpec>): string {
     const modelRows = models
       .filter(m => m.modelType === 'text')
-      .map(m => this.buildModelRow(m, currentSettings[m.modelId] ?? {}))
+      .map(m => this.buildModelRow(m, currentSettings[m.modelId] ?? {}, specs?.[m.modelId]))
       .join('');
 
     return `<!DOCTYPE html>
@@ -207,6 +208,7 @@ export class ModelManagerPanel {
   .effort-group[style*="display: none"] {
     display: none !important;
   }
+  .model-card.hidden-by-vendor { display: none !important; }
   .btn-bar {
     margin-top: 28px;
     display: flex;
@@ -341,6 +343,14 @@ ${modelRows}
     });
   })();
 
+  // 如果指定了初始供应商，自动过滤
+  (function initVendorFilter() {
+    var initialVendor = '${this.esc(selectedVendor || '')}';
+    if (initialVendor) {
+      filterByVendor(initialVendor);
+    }
+  })();
+
   function save() {
     const settings = {};
     document.querySelectorAll('.model-card').forEach(card => {
@@ -372,7 +382,26 @@ ${modelRows}
     vscode.postMessage({ type: 'removeProvider', vendor: vendor });
   }
   function selectVendor(vendor) {
-    vscode.postMessage({ type: 'selectVendor', vendor: vendor });
+    filterByVendor(vendor);
+  }
+  function filterByVendor(vendor) {
+    document.querySelectorAll('.model-card').forEach(function(card) {
+      var cardVendor = card.dataset.vendor;
+      if (!vendor || cardVendor === vendor) {
+        card.classList.remove('hidden-by-vendor');
+      } else {
+        card.classList.add('hidden-by-vendor');
+      }
+    });
+    // 更新 tab 激活状态
+    document.querySelectorAll('.provider-tab').forEach(function(tab) {
+      var tabVendor = tab.dataset.vendor;
+      if ((!vendor && tabVendor === '') || tabVendor === vendor) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
+    });
   }
   // 委托事件处理：点击整个 provider-tabs 区域，根据 data-action 分发
   document.querySelector('.provider-tabs').addEventListener('click', function(e) {
@@ -381,7 +410,7 @@ ${modelRows}
     const action = target.dataset.action;
     const vendor = target.dataset.vendor;
     if (action === 'select' && vendor !== undefined) {
-      vscode.postMessage({ type: 'selectVendor', vendor: vendor });
+      filterByVendor(vendor);
     } else if (action === 'remove' && vendor) {
       vscode.postMessage({ type: 'removeProvider', vendor: vendor });
     } else if (action === 'add') {
@@ -415,7 +444,7 @@ ${modelRows}
     </div>`;
   }
 
-  private buildModelRow(m: CopilotPPModelInfo, settings: Record<string, any> = {}): string {
+  private buildModelRow(m: CopilotPPModelInfo, settings: Record<string, any> = {}, spec?: ModelParameterSpec): string {
     const ctx = settings.contextWindow ?? m.maxInputTokens ?? 128000;
     const out = settings.maxOutputTokens ?? m.maxOutputTokens ?? 4096;
     const vision = settings.vision ?? false;
@@ -425,7 +454,10 @@ ${modelRows}
     const thinkingCanDisable = settings.thinkingCanDisable ?? true;
     const disableTemp = settings.disableTemperatureWhenThinking ?? false;
 
-    const thinkingOptions = [
+    // 为 HTML id/list 属性生成安全的模型标识符
+    const safeModelId = m.modelId.replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-');
+
+    const thinkingOptions: Array<[string, string]> = [
       ['disabled', '关闭'],
       ['reasoning_object', 'GPT-5.5/5.4 (reasoning)'],
       ['thinking_type', 'DeepSeek V4 (reasoning_effort)'],
@@ -438,8 +470,27 @@ ${modelRows}
       ['auto', '自动检测'],
     ];
 
+    // Filter thinking options by spec's supportedTypes
+    const filteredThinkingOptions = spec?.thinking?.supportedTypes
+      ? thinkingOptions.filter(([v]) => spec.thinking!.supportedTypes.includes(v as any))
+      : thinkingOptions;
+
+    // Build context window datalist options
+    const ctxOptions = spec?.contextWindow.options ?? COMMON_CTX_OPTIONS;
+    const ctxDataList = ctxOptions.map(o => {
+      const label = o >= 1000 ? (o / 1000).toFixed(0).replace(/\.0$/, '') + 'K' : String(o);
+      return `<option value="${o}">${label}</option>`;
+    }).join('');
+
+    // Build max output tokens datalist options
+    const outOptions = spec?.maxOutputTokens.options ?? COMMON_OUT_OPTIONS;
+    const outDataList = outOptions.map(o => {
+      const label = o >= 1000 ? (o / 1000).toFixed(0).replace(/\.0$/, '') + 'K' : String(o);
+      return `<option value="${o}">${label}</option>`;
+    }).join('');
+
     return `
-<div class="model-card" data-model-id="${this.esc(m.modelId)}">
+<div class="model-card" data-model-id="${this.esc(m.modelId)}" data-vendor="${this.esc(m.modelId.split('/')[0] || '')}">
   <div class="model-header">
     <div>
       <div class="model-name">${this.esc(m.name)}</div>
@@ -450,16 +501,18 @@ ${modelRows}
   <div class="model-form">
     <div class="form-group">
       <label>上下文窗口 (tokens)</label>
-      <input type="number" data-field="contextWindow" value="${ctx}" min="4096" step="1000">
+      <input type="number" list="ctx-dl-${safeModelId}" data-field="contextWindow" value="${ctx}" class="token-input" min="${spec?.contextWindow.min ?? 4096}" max="${spec?.contextWindow.max ?? 1048576}">
+      <datalist id="ctx-dl-${safeModelId}">${ctxDataList}</datalist>
     </div>
     <div class="form-group">
       <label>最大输出 (tokens)</label>
-      <input type="number" data-field="maxOutputTokens" value="${out}" min="256" step="100">
+      <input type="number" list="out-dl-${safeModelId}" data-field="maxOutputTokens" value="${out}" class="token-input" min="${spec?.maxOutputTokens.min ?? 256}" max="${spec?.maxOutputTokens.max ?? 384000}">
+      <datalist id="out-dl-${safeModelId}">${outDataList}</datalist>
     </div>
     <div class="form-group">
       <label>思考模式</label>
       <select data-field="thinkingType" onchange="updateEffortOptions(this)">
-        ${thinkingOptions.map(([v, l]) => `<option value="${v}"${v === thinkingType ? ' selected' : ''}>${l}</option>`).join('')}
+        ${filteredThinkingOptions.map(([v, l]) => `<option value="${v}"${v === thinkingType ? ' selected' : ''}>${l}</option>`).join('')}
       </select>
     </div>
     <div class="form-group effort-group" data-effort-type="${thinkingType}">

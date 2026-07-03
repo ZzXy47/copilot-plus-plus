@@ -114,7 +114,16 @@ npm run build     # 构建
 npm run package   # 打包 VSIX
 ```
 
-### 📄 许可证
+### � 变更记录
+
+#### v1.1.1 (2026-07-03)
+
+- 🐛 **修复 Copilot Chat 对话框「思考工作量」显示上下文窗口数值** — VS Code 内部仅识别 `navigation`（思考工作量）和 `tokens`（上下文大小）两个配置组，现已将 `reasoningEffort` 正确映射到 `navigation` 组，`contextWindow` 映射到 `tokens` 组
+- 🐛 **修复齿轮菜单思考工作量不显示** — 修正默认值回退逻辑
+- 🐛 **修复 Token 下拉选项显示错误** — 修正 `buildConfigurationSchema` 中的枚举值
+- 🐛 **修复模型名称显示厂商前缀污染** — 在 `resolveModelSpec` 中剥离前缀
+
+### �📄 许可证
 
 MIT
 
