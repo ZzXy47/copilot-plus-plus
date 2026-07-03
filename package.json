@@ -2,7 +2,7 @@
   "name": "copilot-plus-plus",
   "displayName": "Copilot++ — Universal AI Model Gateway",
   "description": "Connect any OpenAI-compatible API to GitHub Copilot Chat. Multi-provider, auto model discovery, visual config.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "preview": false,
   "publisher": "ZENXIY",
   "author": {
